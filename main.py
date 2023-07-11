@@ -16,6 +16,7 @@ class CalcData:
     nPatternCount = 8
     nChipPerLine = 4
     nLineCount = 4
+    nYtick = 0.5
     nGraphHeight = 30
 
 class xmlData:
@@ -50,6 +51,8 @@ class MyClass:
         ChipPerLine_Label = QLabel("Chip Per Line : ", window)
         self.ChipPerLine_TB = QTextEdit(str(self.datas.nChipPerLine),window)
         LineCount_Label = QLabel("Line Count : ", window)
+        yTick_Label = QLabel("yTick : ", window)
+        self.Ytick_TB = QTextEdit(str(self.datas.nYtick),window);
         self.LineCount_TB = QTextEdit(str(self.datas.nLineCount),window)
         GraphHeight_Label = QLabel("Graph Height : ", window)
         self.Graph_Height_TB = QTextEdit(str(self.datas.nGraphHeight),window)
@@ -85,6 +88,8 @@ class MyClass:
         GraphHeight_Label.setParent(left_widget)
         self.Graph_Height_TB.setParent(left_widget)
         RunButton.setParent(left_widget)
+        yTick_Label.setParent(left_widget)
+        self.Ytick_TB.setParent(left_widget)
         CompareResult_Label1.setParent(right_widget)
         CompareResult_Button1.setParent(right_widget)
         self.CompareResult_Path1.setParent(right_widget)
@@ -100,6 +105,10 @@ class MyClass:
         self.ChipPerLine_TB.setGeometry(110,150,50,25)
         LineCount_Label.setGeometry(10,202,100,20)
         self.LineCount_TB.setGeometry(110,200,50,25)
+
+        yTick_Label.setGeometry(10,252,100,20)
+        self.Ytick_TB.setGeometry(110,252,100,20)
+
         GraphHeight_Label.setGeometry(10,302,100,20)
         self.Graph_Height_TB.setGeometry(110,300,50,25)
         RunButton.setGeometry(80, 402, 100, 50)
@@ -119,6 +128,7 @@ class MyClass:
         self.ChipPerLine_TB.textChanged.connect(self.on_property_changed)
         self.Graph_Height_TB.textChanged.connect(self.on_property_changed)
         self.LineCount_TB.textChanged.connect(self.on_property_changed)
+        self.Ytick_TB.textChanged.connect(self.on_property_changed)
         RunButton.clicked.connect(self.run_function)
         CompareResult_Button1.clicked.connect(self.select_compare_path1)
         CompareResult_Button2.clicked.connect(self.select_compare_path2)
@@ -143,6 +153,7 @@ class MyClass:
         self.datas.nChipPerLine = int(self.ChipPerLine_TB.toPlainText())
         self.datas.nLineCount = int(self.LineCount_TB.toPlainText())
         self.datas.nGraphHeight = int(self.Graph_Height_TB.toPlainText())
+        self.datas.nYtick = float(self.Ytick_TB.toPlainText())
     
     
     def run_function(self):
@@ -178,7 +189,7 @@ class MyClass:
                     if results is not None:
                         for Feature in results.findall('.//Feature'):
                             Index = Feature.get('Index')
-                            Blur = Feature.find('.//Blur')
+                            Blurs = Feature.findall('.//Blur')
                             if  Blur is not None:
                                 blur_score = Blur.get('BlurScore')
                                 xml_data = xmlData(Index, blur_score)
@@ -237,6 +248,7 @@ class MyClass:
         plt.xlabel("number")
         plt.ylabel("BlurScore")
         plt.ylim(0,self.datas.nGraphHeight)
+        plt.yticks(np.arange(0,self.datas.nGraphHeight, self.datas.nYtick))  # x 축 눈금 설정
         plt.plot(x, y)  # 그래프 그리기
         plt.savefig(output_file)  # 그래프를 파일로 저장
         plt.close()  # 그래프 창 닫기
