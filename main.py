@@ -172,14 +172,17 @@ class MyClass:
         work_folder_path = os.path.join(root_folder_path, now.strftime("%Y-%m-%d_%H-%M-%S"))
         os.makedirs(work_folder_path)
 
-        result_Arrays = []
-        for i in range(self.datas.nLineCount) :
-            ary = []
-            result_Arrays.append(ary)
-
+        # for i in range(self.datas.nLineCount) :
+        #     ary = []
+        #     result_Arrays.append(ary)
+        Line1_Arrays = []
+        Line2_Arrays = []
+        Line3_Arrays = []
         for folder in folder_list:
             xml_file = os.path.join(folder, "result.xml")
-            xml_data_list = []
+            Line1_Array = []
+            Line2_Array = []
+            Line3_Array = []
             # XML 파일이 존재하면
             if os.path.isfile(xml_file):
                 try:
@@ -190,33 +193,33 @@ class MyClass:
                         for Feature in results.findall('.//Feature'):
                             Index = Feature.get('Index')
                             Blurs = Feature.findall('.//Blur')
-                            if  Blur is not None:
-                                blur_score = Blur.get('BlurScore')
-                                xml_data = xmlData(Index, blur_score)
-                                xml_data_list.append(xml_data)
-                        expected_count = self.datas.nChipPerLine * self.datas.nLineCount
-                        if expected_count != len(xml_data_list):
-                            print("BlurScore Count mismatch", "  Exepcted : " + str(expected_count) + "  Real : " + str(len(xml_data_list)))
-                            continue 
-                        chunk_size = self.datas.nChipPerLine
-                        temp = 0
-                        for i in range(0, len(xml_data_list), chunk_size):
-                            chunk = xml_data_list[i:i+chunk_size]
-                            blur_scores = [float(data.nBlurScore) for data in chunk]
-                            average = sum(blur_scores) / len(blur_scores)
-                            result_Arrays[temp].append(average)
-                            temp = temp + 1
+                            if len(Blurs) < 6:
+                                print("Blur Count lower than 6")
+                                return
+                            if Index in {'1','2','3','4'}:
+                                for blur in Blurs:
+                                    Line1_Array.append(blur.get('BlurScore'))
+                            elif Index in {'5','6','7','8'}:
+                                for blur in Blurs:
+                                    Line2_Array.append(blur.get('BlurScore'))
+                            elif Index in {'9','10','11','12'}:
+                                for blur in Blurs:
+                                    Line3_Array.append(blur.get("BlurScore"))
+                    Line1_Arrays.append(Line1_Array)
+                    Line2_Arrays.append(Line2_Array)
+                    Line3_Arrays.append(Line3_Array)
                 except Exception as e:
                     print(f"Error parsing XML file: {xml_file}. Error: {e}")
             # result.xml이 없으면 skip
             else:
                 print(f"No result.xml file in folder: {folder}. Skipping to next folder.")
-        tmp = 0
-        for ary in result_Arrays:
-            save_path = os.path.join(work_folder_path, f"plot{tmp+1}.png")
-            self.save_array_graph(ary, save_path)
-            tmp +=1
-        self.make_result_data(result_Arrays, work_folder_path)
+        save_path = os.path.join(work_folder_path, "Line1.png")
+        self.save_array_graph(Line1_Arrays, save_path, "RADS OFF LINE1")
+        save_path = os.path.join(work_folder_path, "Line2.png")
+        self.save_array_graph(Line2_Arrays, save_path, "RADS OFF LINE2")
+        save_path = os.path.join(work_folder_path, "Line3.png")
+        self.save_array_graph(Line3_Arrays, save_path, "RADS OFF LINE3")
+        # self.make_result_data(result_Arrays, work_folder_path)
         print("Run Finished.")
     def make_result_data(self, result_Arrays, folder_path):
         data = ElementTree.Element("data")
@@ -242,24 +245,29 @@ class MyClass:
         plt.hist(data, bins='auto')
         plt.savefig(output_file)
         plt.close()
-    def save_array_graph(self, data, output_file):
-        x = np.arange(len(data))  # 인덱스를 x 축으로 사용
-        y = np.array(data)  # 값들을 y 축으로 사용
-        plt.xlabel("number")
+    def save_array_graph(self, data_list, output_file, title):
+        plt.figure(figsize=(12.8, 9.6))  # 그래프 크기 조정
+        plt.title(title)
+        for data in data_list:
+            temp = np.array(data).astype(float)
+            x = np.arange(len(temp))  # 인덱스를 x 축으로 사용
+            y = np.array(temp)  # 값들을 y 축으로 사용
+            plt.plot(x, y)  # 그래프 그리기
+
+        plt.xlabel("SubLine")
         plt.ylabel("BlurScore")
-        plt.ylim(0,self.datas.nGraphHeight)
-        plt.yticks(np.arange(0,self.datas.nGraphHeight, self.datas.nYtick))  # x 축 눈금 설정
-        plt.plot(x, y)  # 그래프 그리기
+        plt.ylim(0, self.datas.nGraphHeight)
+        plt.yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))  # y 축 눈금 설정
+        plt.legend([f'Data {i+1}' for i in range(0, len(data_list), 2)], bbox_to_anchor=(1.01, 1.15), loc='upper left')
         plt.savefig(output_file)  # 그래프를 파일로 저장
         plt.close()  # 그래프 창 닫기
+
     def save_two_array_graph(self, data1, data2, output_file):
         x1 = np.arange(len(data1))  # 인덱스를 x 축으로 사용
         y1 = np.array(data1)  # 값들을 y 축으로 사용
-
         x2 = np.arange(len(data2))  # 인덱스를 x 축으로 사용
         y2 = np.array(data2)  # 값들을 y 축으로 사용
-
-        plt.xlabel("number")
+        plt.xlabel("Repeat")
         plt.ylabel("Score")
         plt.ylim(0, self.datas.nGraphHeight)
         plt.plot(x1, y1, label='Data1')  # 그래프 1 그리기
