@@ -175,14 +175,16 @@ class MyClass:
         # for i in range(self.datas.nLineCount) :
         #     ary = []
         #     result_Arrays.append(ary)
-        Line1_Arrays = []
-        Line2_Arrays = []
-        Line3_Arrays = []
+        # Line1_Arrays = []
+        # Line2_Arrays = []
+        # Line3_Arrays = []
+        result_Arrays = []
         for folder in folder_list:
             xml_file = os.path.join(folder, "result.xml")
-            Line1_Array = []
-            Line2_Array = []
-            Line3_Array = []
+            # Line1_Array = []
+            # Line2_Array = []
+            # Line3_Array = []
+            result_Array = []
             # XML 파일이 존재하면
             if os.path.isfile(xml_file):
                 try:
@@ -196,30 +198,33 @@ class MyClass:
                             if len(Blurs) < 6:
                                 print("Blur Count lower than 6")
                                 return
-                            if Index in {'1','2','3','4'}:
-                                for blur in Blurs:
-                                    Line1_Array.append(blur.get('BlurScore'))
-                            elif Index in {'5','6','7','8'}:
-                                for blur in Blurs:
-                                    Line2_Array.append(blur.get('BlurScore'))
-                            elif Index in {'9','10','11','12'}:
-                                for blur in Blurs:
-                                    Line3_Array.append(blur.get("BlurScore"))
-                    Line1_Arrays.append(Line1_Array)
-                    Line2_Arrays.append(Line2_Array)
-                    Line3_Arrays.append(Line3_Array)
+                            for blur in Blurs:
+                                result_Array.append(blur.get('BlurScore'))
+                            # if Index in {'1','2','3','4', '5'}:
+                            #     for blur in Blurs:
+                            #         Line1_Array.append(blur.get('BlurScore'))
+                            # elif Index in {'6','7','8'}:
+                            #     for blur in Blurs:
+                            #         Line2_Array.append(blur.get('BlurScore'))
+                            # elif Index in {'9','10','11','12'}:
+                            #     for blur in Blurs:
+                            #         Line3_Array.append(blur.get("BlurScore"))
+                    # Line1_Arrays.append(Line1_Array)
+                    # Line2_Arrays.append(Line2_Array)
+                    # Line3_Arrays.append(Line3_Array)
+                    result_Arrays.append(result_Array)
                 except Exception as e:
                     print(f"Error parsing XML file: {xml_file}. Error: {e}")
             # result.xml이 없으면 skip
             else:
                 print(f"No result.xml file in folder: {folder}. Skipping to next folder.")
-        save_path = os.path.join(work_folder_path, "Line1.png")
-        self.save_array_graph(Line1_Arrays, save_path, "RADS OFF LINE1")
-        save_path = os.path.join(work_folder_path, "Line2.png")
-        self.save_array_graph(Line2_Arrays, save_path, "RADS OFF LINE2")
-        save_path = os.path.join(work_folder_path, "Line3.png")
-        self.save_array_graph(Line3_Arrays, save_path, "RADS OFF LINE3")
-        # self.make_result_data(result_Arrays, work_folder_path)
+        save_path = os.path.join(work_folder_path, "result.png")
+        self.save_array_graph(result_Arrays, save_path, "result")
+        self.make_result_data(result_Arrays, work_folder_path)
+        # save_path = os.path.join(work_folder_path, "Line2.png")
+        # self.save_array_graph(Line2_Arrays, save_path, "RADS OFF LINE2")
+        # save_path = os.path.join(work_folder_path, "Line3.png")
+        # self.save_array_graph(Line3_Arrays, save_path, "RADS OFF LINE3")
         print("Run Finished.")
     def make_result_data(self, result_Arrays, folder_path):
         data = ElementTree.Element("data")
