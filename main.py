@@ -57,6 +57,7 @@ class MyClass:
         GraphHeight_Label = QLabel("Graph Height : ", window)
         self.Graph_Height_TB = QTextEdit(str(self.datas.nGraphHeight),window)
         RunButton = QPushButton("Run", window)
+        RunButton2 = QPushButton("Run2", window)
         border_frame = QFrame(window)
 
         CompareResult_Label1 = QLabel("Compare Path1", window)
@@ -88,6 +89,7 @@ class MyClass:
         GraphHeight_Label.setParent(left_widget)
         self.Graph_Height_TB.setParent(left_widget)
         RunButton.setParent(left_widget)
+        RunButton2.setParent(left_widget)
         yTick_Label.setParent(left_widget)
         self.Ytick_TB.setParent(left_widget)
         CompareResult_Label1.setParent(right_widget)
@@ -112,6 +114,7 @@ class MyClass:
         GraphHeight_Label.setGeometry(10,302,100,20)
         self.Graph_Height_TB.setGeometry(110,300,50,25)
         RunButton.setGeometry(80, 402, 100, 50)
+        RunButton2.setGeometry(180, 402, 100, 50)
 
         CompareResult_Label1.setGeometry(10,52,100,20)
         CompareResult_Button1.setGeometry(110,50,50,25)
@@ -130,6 +133,7 @@ class MyClass:
         self.LineCount_TB.textChanged.connect(self.on_property_changed)
         self.Ytick_TB.textChanged.connect(self.on_property_changed)
         RunButton.clicked.connect(self.run_function)
+        RunButton2.clicked.connect(self.run_function2)
         CompareResult_Button1.clicked.connect(self.select_compare_path1)
         CompareResult_Button2.clicked.connect(self.select_compare_path2)
         CompareResult_Button.clicked.connect(self.run_compare)
@@ -172,18 +176,9 @@ class MyClass:
         work_folder_path = os.path.join(root_folder_path, now.strftime("%Y-%m-%d_%H-%M-%S"))
         os.makedirs(work_folder_path)
 
-        # for i in range(self.datas.nLineCount) :
-        #     ary = []
-        #     result_Arrays.append(ary)
-        # Line1_Arrays = []
-        # Line2_Arrays = []
-        # Line3_Arrays = []
         result_Arrays = []
         for folder in folder_list:
             xml_file = os.path.join(folder, "result.xml")
-            # Line1_Array = []
-            # Line2_Array = []
-            # Line3_Array = []
             result_Array = []
             # XML 파일이 존재하면
             if os.path.isfile(xml_file):
@@ -200,18 +195,6 @@ class MyClass:
                                 return
                             for blur in Blurs:
                                 result_Array.append(blur.get('BlurScore'))
-                            # if Index in {'1','2','3','4', '5'}:
-                            #     for blur in Blurs:
-                            #         Line1_Array.append(blur.get('BlurScore'))
-                            # elif Index in {'6','7','8'}:
-                            #     for blur in Blurs:
-                            #         Line2_Array.append(blur.get('BlurScore'))
-                            # elif Index in {'9','10','11','12'}:
-                            #     for blur in Blurs:
-                            #         Line3_Array.append(blur.get("BlurScore"))
-                    # Line1_Arrays.append(Line1_Array)
-                    # Line2_Arrays.append(Line2_Array)
-                    # Line3_Arrays.append(Line3_Array)
                     result_Arrays.append(result_Array)
                 except Exception as e:
                     print(f"Error parsing XML file: {xml_file}. Error: {e}")
@@ -219,13 +202,72 @@ class MyClass:
             else:
                 print(f"No result.xml file in folder: {folder}. Skipping to next folder.")
         save_path = os.path.join(work_folder_path, "result.png")
-        self.save_array_graph(result_Arrays, save_path, "result")
+        self.save_array_graph(result_Arrays, save_path, "BlurScore")
         self.make_result_data(result_Arrays, work_folder_path)
-        # save_path = os.path.join(work_folder_path, "Line2.png")
-        # self.save_array_graph(Line2_Arrays, save_path, "RADS OFF LINE2")
-        # save_path = os.path.join(work_folder_path, "Line3.png")
-        # self.save_array_graph(Line3_Arrays, save_path, "RADS OFF LINE3")
         print("Run Finished.")
+
+
+    def run_function2(self):
+        # 실행할 함수의 코드를 여기에 작성합니다.
+        sFolderPath = self.datas.sFolderPath
+        folder_list = [f for f in glob.glob(sFolderPath + "**/*", recursive=False) if os.path.isdir(f)]
+        folder_list.sort(key=os.path.getctime, reverse=False)
+
+        root_folder_path = r"D:\BlurScore_Review"
+
+        # 폴더 생성
+        if not os.path.exists(root_folder_path):
+            os.makedirs(root_folder_path)
+
+        now = datetime.datetime.now()
+        work_folder_path = os.path.join(root_folder_path, now.strftime("%Y-%m-%d_%H-%M-%S"))
+        os.makedirs(work_folder_path)
+
+        result_Arrays = []
+        for folder in folder_list:
+            xml_file = os.path.join(folder, "result.xml")
+            result_Array = []
+            # XML 파일이 존재하면
+            if os.path.isfile(xml_file):
+                try:
+                    tree = ElementTree.parse(xml_file)
+                    root = tree.getroot()
+                    results = root.find(".//Results")
+                    if results is not None:
+                        for Feature in results.findall('.//Feature'):
+                            Index = Feature.get('Index')
+                            Blurs = Feature.findall('.//Blur')
+                            if len(Blurs) < 6:
+                                print("Blur Count lower than 6")
+                                return
+                            for blur in Blurs:
+                                result_Array.append(blur.get('BlurScore'))
+                    result_Arrays.append(result_Array)
+                except Exception as e:
+                    print(f"Error parsing XML file: {xml_file}. Error: {e}")
+            # result.xml이 없으면 skip
+            else:
+                print(f"No result.xml file in folder: {folder}. Skipping to next folder.")
+        save_path = os.path.join(work_folder_path, "variance_result.png")
+        result_Arrays_ToVariance = self.transform_to_variance_arrays(result_Arrays)
+        self.save_variance_graph(result_Arrays_ToVariance, save_path, "variance")
+        print("Run Finished.")
+    def transform_to_variance_arrays(self, input_arrays):
+        # 문자열을 숫자로 변환한 NumPy 배열 생성
+        numeric_arrays = np.array(input_arrays, dtype=float)
+        
+        # 열 단위로 분산 계산
+        variances = np.var(numeric_arrays, axis=0)
+        
+        # 결과 리스트 생성
+        result_Arrays_ToVariance = []
+        
+        # 결과 리스트에 분산 값과 각 열의 첫 번째 요소 추가
+        for col_idx, variance in enumerate(variances):
+            result_Arrays_ToVariance.append([variance])
+            
+        return result_Arrays_ToVariance
+
     def make_result_data(self, result_Arrays, folder_path):
         data = ElementTree.Element("data")
         count = ElementTree.SubElement(data, "count")
@@ -263,7 +305,23 @@ class MyClass:
         plt.ylabel("BlurScore")
         plt.ylim(0, self.datas.nGraphHeight)
         plt.yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))  # y 축 눈금 설정
-        plt.legend([f'Data {i+1}' for i in range(0, len(data_list), 2)], bbox_to_anchor=(1.01, 1.15), loc='upper left')
+        plt.legend([f'Data {i+1}' for i in range(0, len(data_list), 1)], bbox_to_anchor=(1.01, 1.15), loc='upper left')
+        plt.savefig(output_file)  # 그래프를 파일로 저장
+        plt.close()  # 그래프 창 닫기
+    def save_variance_graph(self, data_list, output_file, title):
+        plt.figure(figsize=(12.8, 9.6))  # 그래프 크기 조정
+        plt.title(title)
+        for data in data_list:
+            temp = np.array(data).astype(float)
+            x = np.arange(len(data_list))  # 인덱스를 x 축으로 사용
+            y = np.array(data_list)  # 값들을 y 축으로 사용
+            plt.plot(x, y)  # 그래프 그리기
+
+        plt.xlabel("SubLine")
+        plt.ylabel("BlurScore")
+        plt.ylim(0, self.datas.nGraphHeight)
+        plt.yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))  # y 축 눈금 설정
+        plt.legend([f'Data {i+1}' for i in range(0, len(data_list), 1)], bbox_to_anchor=(1.01, 1.15), loc='upper left')
         plt.savefig(output_file)  # 그래프를 파일로 저장
         plt.close()  # 그래프 창 닫기
 
