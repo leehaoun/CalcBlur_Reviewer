@@ -238,11 +238,11 @@ class MyClass:
         means = np.mean(data, axis=0)
         stddevs = np.std(data, axis=0)
 
-        sigma3_values = []
-        for i in range(len(means)):
-            lower_bound = means[i] - 3 * stddevs[i]
-            upper_bound = means[i] + 3 * stddevs[i]
-            sigma3_values.append((lower_bound + upper_bound) / 2)
+        # sigma3_values = []
+        # for i in range(len(means)):
+        #     lower_bound = means[i] - 3 * stddevs[i]
+        #     upper_bound = means[i] + 3 * stddevs[i]
+        #     sigma3_values.append((lower_bound + upper_bound) / 2)
 
         variances = []
         for i in range(len(means)):
@@ -251,10 +251,10 @@ class MyClass:
 
         save_3sigma_path = os.path.join(work_folder_path, "3sigma.png")
         chipNum = int(len(result_Arrays[0]) / 6)
-        self.make_result_data(result_Arrays, sigma3_values ,work_folder_path)
+        self.make_result_data(result_Arrays, stddevs ,work_folder_path)
         self.save_array_graph(result_Arrays, save_path, "BlurScore", chipNum)
         # sigma3_values의 평균을 계산하여 출력
-        sigma3_mean = sum(sigma3_values) / len(sigma3_values)
+        sigma3_mean = sum(stddevs) / len(stddevs)
         variances_mean = sum(variances) / len(variances)
         print("Sigma3 Values의 평균:", sigma3_mean)
         print("variances Values의 평균:", variances_mean)
