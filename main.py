@@ -15,11 +15,10 @@ class CalcData:
     sFolderPath = "D:\PixelBlur"
     sComparePath1 = ""
     sComparePath2 = ""
-    nPatternCount = 8
-    nChipPerLine = 4
-    nLineCount = 4
+    nPatternCount = 12
+    nIndexCount = 10
     nYtick = 0.5
-    nGraphHeight = 30
+    nGraphHeight = 10
 
 class xmlData:
     nBlurScore = 0
@@ -50,12 +49,12 @@ class MyClass:
 
         FolderPath_Label = QLabel("Folder Path : ", window)
         self.FolderPath_TB = QTextEdit(self.datas.sFolderPath, window)
-        ChipPerLine_Label = QLabel("Chip Per Line : ", window)
-        self.ChipPerLine_TB = QTextEdit(str(self.datas.nChipPerLine),window)
-        LineCount_Label = QLabel("Line Count : ", window)
+        IndexCount_Label = QLabel("Index Count : ", window)
+        self.IndexCount_TB = QTextEdit(str(self.datas.nIndexCount),window)
+        PatternCount_Label = QLabel("Pattern Count : ", window)
+        self.PatternCount_TB = QTextEdit(str(self.datas.nPatternCount),window)
         yTick_Label = QLabel("yTick : ", window)
         self.Ytick_TB = QTextEdit(str(self.datas.nYtick),window);
-        self.LineCount_TB = QTextEdit(str(self.datas.nLineCount),window)
         GraphHeight_Label = QLabel("Graph Height : ", window)
         self.Graph_Height_TB = QTextEdit(str(self.datas.nGraphHeight),window)
         RunButton = QPushButton("Run", window)
@@ -84,10 +83,10 @@ class MyClass:
 
         FolderPath_Label.setParent(left_widget)
         self.FolderPath_TB.setParent(left_widget)
-        ChipPerLine_Label.setParent(left_widget)
-        self.ChipPerLine_TB.setParent(left_widget)
-        LineCount_Label.setParent(left_widget)
-        self.LineCount_TB.setParent(left_widget)
+        IndexCount_Label.setParent(left_widget)
+        self.IndexCount_TB.setParent(left_widget)
+        PatternCount_Label.setParent(left_widget)
+        self.PatternCount_TB.setParent(left_widget)
         GraphHeight_Label.setParent(left_widget)
         self.Graph_Height_TB.setParent(left_widget)
         RunButton.setParent(left_widget)
@@ -105,10 +104,10 @@ class MyClass:
         border_frame.setGeometry(window.width() // 2, 0, 1, window.height())
         FolderPath_Label.setGeometry(10,52,100,20)
         self.FolderPath_TB.setGeometry(110,50,130,30)
-        ChipPerLine_Label.setGeometry(10,152,100,20)
-        self.ChipPerLine_TB.setGeometry(110,150,50,25)
-        LineCount_Label.setGeometry(10,202,100,20)
-        self.LineCount_TB.setGeometry(110,200,50,25)
+        IndexCount_Label.setGeometry(10,152,100,20)
+        self.IndexCount_TB.setGeometry(110,150,50,25)
+        PatternCount_Label.setGeometry(10,202,100,20)
+        self.PatternCount_TB.setGeometry(110,200,50,25)
 
         yTick_Label.setGeometry(10,252,100,20)
         self.Ytick_TB.setGeometry(110,252,100,20)
@@ -130,9 +129,9 @@ class MyClass:
 
         # 변수와 QLineEdit 바인딩
         self.FolderPath_TB.textChanged.connect(self.on_property_changed)
-        self.ChipPerLine_TB.textChanged.connect(self.on_property_changed)
+        self.IndexCount_TB.textChanged.connect(self.on_property_changed)
         self.Graph_Height_TB.textChanged.connect(self.on_property_changed)
-        self.LineCount_TB.textChanged.connect(self.on_property_changed)
+        self.PatternCount_TB.textChanged.connect(self.on_property_changed)
         self.Ytick_TB.textChanged.connect(self.on_property_changed)
         RunButton.clicked.connect(self.run_function)
         RunButton2.clicked.connect(self.run_function2)
@@ -156,10 +155,11 @@ class MyClass:
         
     def on_property_changed(self):
         self.datas.sFolderPath = self.FolderPath_TB.toPlainText()
-        self.datas.nChipPerLine = int(self.ChipPerLine_TB.toPlainText())
-        self.datas.nLineCount = int(self.LineCount_TB.toPlainText())
+        self.datas.nIndexCount = int(self.IndexCount_TB.toPlainText())
+        self.datas.nPatternCount = int(self.PatternCount_TB.toPlainText())
         self.datas.nGraphHeight = int(self.Graph_Height_TB.toPlainText())
         self.datas.nYtick = float(self.Ytick_TB.toPlainText())
+        
     
     
     def run_function(self):
@@ -194,14 +194,7 @@ class MyClass:
         result_Arrays = []
         for folder in folder_list:
             xml_file = os.path.join(folder, "result.xml")
-            # result_Array = [[]]
-            # result_Array.append([])
-            # result_Array.append([])
-            # result_Array.append([])
-            # result_Array.append([])
-            # result_Array.append([])
-            result_Array = [[] for _ in range(12)]
-            # XML 파일이 존재하면
+            result_Array = [[] for _ in range(self.datas.nPatternCount)]
             if os.path.isfile(xml_file):
                 try:
                     tree = ElementTree.parse(xml_file)
@@ -211,7 +204,7 @@ class MyClass:
                         for Feature in results.findall('.//Feature'):
                             Index = Feature.get('Index')
                             Blurs = Feature.findall('.//Blur')
-                            if len(Blurs) < 12:
+                            if len(Blurs) < self.datas.nPatternCount:
                                 print("Blur Count lower than 12")
                                 return
                             for blur in Blurs:
@@ -251,7 +244,7 @@ class MyClass:
             variances.append(variance)
 
         save_3sigma_path = os.path.join(work_folder_path, "3sigma.png")
-        chipNum = int(len(result_Arrays[0]) / 12)
+        chipNum = int(len(result_Arrays[0]) / self.datas.nPatternCount)
         self.make_result_data(result_Arrays, stddevs ,work_folder_path)
         self.save_array_graph(result_Arrays, save_path, "BlurScore", chipNum)
         # sigma3_values의 평균을 계산하여 출력
@@ -300,6 +293,54 @@ class MyClass:
         plt.savefig(output_file)
         plt.close()
 
+    # def save_array_graph(self, data_list, output_file, title, chipNum):
+    #     fig, ax = plt.subplots(figsize=(12.8, 9.6))
+    #     ax.set_title(title)
+        
+    #     color_map = cm.get_cmap('tab20b', len(data_list)//2)
+    #     color_map_c = cm.get_cmap('tab20c', len(data_list)//2)
+        
+    #     for idx, data in enumerate(data_list):
+    #         temp = np.array(data).astype(float)
+    #         x = np.arange(len(temp))
+    #         y = np.array(temp)
+            
+    #         if idx % 2 == 0:
+    #             color = color_map(idx // 2)
+    #         else:
+    #             color = color_map_c((idx - 1) // 2)
+            
+    #         ax.plot(x, y, label=f'Data {idx+1}', color=color)
+    #         ax.text(x[-1] + 0.5, y[-1], str(idx+1), fontsize=8, ha='center', va='bottom')
+
+    #     ax.set_xlabel("SubLine")
+    #     ax.set_ylabel("BlurScore")
+    #     ax.set_ylim(0, self.datas.nGraphHeight)
+    #     ax.set_xlim(0,len(data_list[0]))
+    #     pattern = []
+    #     for i in range(1, self.datas.nPatternCount + 1):
+    #        pattern.extend([str(i)] * self.datas.nIndexCount)
+    #     ax.set_xticks(np.arange(0, len(data), 1), pattern)
+    #     ax.set_yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))
+    #     ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
+        
+    #     # Add a secondary x-axis (ax2)
+    #     ax2 = ax.twiny()  # Use twiny() instead of twinx() to create a new x-axis
+        
+    #     def ax2_to_x(x):
+    #         return x / self.datas.nPatternCount  # Convert back to original scale
+        
+    #     x_positions = np.arange(-1, len(data_list[0]), self.datas.nPatternCount - 1)
+    #     ax2.set_xlim(ax.get_xlim())
+    #     ax2.set_xticks(x_positions)
+    #     ax2.set_xticklabels([f'{int(ax2_to_x(x)):g}' for x in x_positions])
+    #     ax2.set_xlabel("구분선")
+    #     for x_position in x_positions:
+    #         ax2.axvline(x=x_position, color='gray', linestyle='--', alpha=0.5)
+    
+    #     plt.savefig(output_file)
+    #     plt.close()
+
     def save_array_graph(self, data_list, output_file, title, chipNum):
         fig, ax = plt.subplots(figsize=(12.8, 9.6))
         ax.set_title(title)
@@ -325,28 +366,34 @@ class MyClass:
         ax.set_ylim(0, self.datas.nGraphHeight)
         ax.set_xlim(0,len(data_list[0]))
         pattern = []
-        for i in range(1, 13):
-           pattern.extend([str(i)] * 10)
+        for i in range(1, self.datas.nPatternCount + 1):
+            pattern.extend([str(i)] * self.datas.nIndexCount)
         ax.set_xticks(np.arange(0, len(data), 1), pattern)
         ax.set_yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))
         ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
+
+        x_positions = np.arange(-1, len(data_list[0]), self.datas.nPatternCount - 2)
         
         # Add a secondary x-axis (ax2)
-        ax2 = ax.twiny()  # Use twiny() instead of twinx() to create a new x-axis
+        # ax2 = ax.twiny()  # Use twiny() instead of twinx() to create a new x-axis
         
-        def ax2_to_x(x):
-            return x / 5  # Convert back to original scale
+        # def ax2_to_x(x):
+        #     return x / self.datas.nPatternCount  # Convert back to original scale
         
-        x_positions = np.arange(-1, len(data_list[0]), 9)
-        ax2.set_xlim(ax.get_xlim())
-        ax2.set_xticks(x_positions)
-        ax2.set_xticklabels([f'{int(ax2_to_x(x)):g}' for x in x_positions])
-        ax2.set_xlabel("구분선")
+        # ax2.set_xlim(ax.get_xlim())
+        # ax2.set_xticks(x_positions)
+        # ax2.set_xticklabels([f'{int(ax2_to_x(x)):g}' for x in x_positions])
+        # ax2.set_xlabel("구분선")
+        
         for x_position in x_positions:
-            ax2.axvline(x=x_position, color='gray', linestyle='--', alpha=0.5)
-    
+            # ax2.axvline(x=x_position, color='gray', linestyle='--', alpha=0.5)
+            # Draw dotted lines at the end of each repeating number
+            if (x_position + 1) % (self.datas.nPatternCount - 2) == 0:
+                ax.axvline(x=x_position, color='gray', linestyle=':', alpha=0.5)
+
         plt.savefig(output_file)
         plt.close()
+
 
 # main.py 실행
 if __name__ == "__main__":
