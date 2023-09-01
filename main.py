@@ -194,12 +194,13 @@ class MyClass:
         result_Arrays = []
         for folder in folder_list:
             xml_file = os.path.join(folder, "result.xml")
-            result_Array = [[]]
-            result_Array.append([])
-            result_Array.append([])
-            result_Array.append([])
-            result_Array.append([])
-            result_Array.append([])
+            # result_Array = [[]]
+            # result_Array.append([])
+            # result_Array.append([])
+            # result_Array.append([])
+            # result_Array.append([])
+            # result_Array.append([])
+            result_Array = [[] for _ in range(12)]
             # XML 파일이 존재하면
             if os.path.isfile(xml_file):
                 try:
@@ -210,8 +211,8 @@ class MyClass:
                         for Feature in results.findall('.//Feature'):
                             Index = Feature.get('Index')
                             Blurs = Feature.findall('.//Blur')
-                            if len(Blurs) < 6:
-                                print("Blur Count lower than 6")
+                            if len(Blurs) < 12:
+                                print("Blur Count lower than 12")
                                 return
                             for blur in Blurs:
                                 subIndex = blur.get('SubIndex')
@@ -250,7 +251,7 @@ class MyClass:
             variances.append(variance)
 
         save_3sigma_path = os.path.join(work_folder_path, "3sigma.png")
-        chipNum = int(len(result_Arrays[0]) / 6)
+        chipNum = int(len(result_Arrays[0]) / 12)
         self.make_result_data(result_Arrays, stddevs ,work_folder_path)
         self.save_array_graph(result_Arrays, save_path, "BlurScore", chipNum)
         # sigma3_values의 평균을 계산하여 출력
@@ -323,7 +324,9 @@ class MyClass:
         ax.set_ylabel("BlurScore")
         ax.set_ylim(0, self.datas.nGraphHeight)
         ax.set_xlim(0,len(data_list[0]))
-        pattern = ['1', '1', '1', '1', '1', '2', '2', '2', '2', '2' , '3', '3', '3', '3', '3' , '4', '4', '4', '4', '4' , '5', '5', '5', '5', '5' , '6', '6', '6', '6', '6']
+        pattern = []
+        for i in range(1, 13):
+           pattern.extend([str(i)] * 10)
         ax.set_xticks(np.arange(0, len(data), 1), pattern)
         ax.set_yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))
         ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
@@ -334,7 +337,7 @@ class MyClass:
         def ax2_to_x(x):
             return x / 5  # Convert back to original scale
         
-        x_positions = np.arange(-1, len(data_list[0]), 5)
+        x_positions = np.arange(-1, len(data_list[0]), 9)
         ax2.set_xlim(ax.get_xlim())
         ax2.set_xticks(x_positions)
         ax2.set_xticklabels([f'{int(ax2_to_x(x)):g}' for x in x_positions])
