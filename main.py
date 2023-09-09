@@ -229,8 +229,8 @@ class MyClass:
         # 배열들을 NumPy 배열로 변환
         data = np.array(converted_arrays)
         # 각 열(요소별)의 평균과 표준편차 계산
-        means = np.mean(data, axis=0)
-        stddevs = np.std(data, axis=0)
+        means = np.nanmean(data, axis=0)
+        stddevs = np.nanstd(data, axis=0)
 
         # sigma3_values = []
         # for i in range(len(means)):
@@ -238,20 +238,12 @@ class MyClass:
         #     upper_bound = means[i] + 3 * stddevs[i]
         #     sigma3_values.append((lower_bound + upper_bound) / 2)
 
-        variances = []
-        for i in range(len(means)):
-            variance = np.mean((data[:, i] - means[i]) ** 2)
-            variances.append(variance)
-
-        save_3sigma_path = os.path.join(work_folder_path, "3sigma.png")
         chipNum = int(len(result_Arrays[0]) / self.datas.nPatternCount)
         self.make_result_data(result_Arrays, stddevs ,work_folder_path)
         self.save_array_graph(result_Arrays, save_path, "BlurScore", chipNum)
         # sigma3_values의 평균을 계산하여 출력
         sigma3_mean = sum(stddevs) / len(stddevs)
-        variances_mean = sum(variances) / len(variances)
         print("Sigma3 Values의 평균:", sigma3_mean)
-        print("variances Values의 평균:", variances_mean)
         print("Run Finished.")
 
 
