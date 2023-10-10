@@ -5,14 +5,19 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.cm as cm
+import tkinter as tk
+import csv
+from tkinter import filedialog
 from datetime import datetime as dt  # Rename the datetime module
 from xml.etree import ElementTree
 from xml.dom import minidom
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QTextBrowser ,QTextEdit, QDesktopWidget, QWidget, QHBoxLayout, QFrame, QFileDialog, QMessageBox, QMainWindow
+from collections import defaultdict
 
 class CalcData:
     sFolderPath = "D:\PixelBlur"
+    sCSVPath = ""
     sComparePath1 = ""
     sComparePath2 = ""
     nPatternCount = 12
@@ -54,20 +59,17 @@ class MyClass:
         PatternCount_Label = QLabel("Pattern Count : ", window)
         self.PatternCount_TB = QTextEdit(str(self.datas.nPatternCount),window)
         yTick_Label = QLabel("yTick : ", window)
-        self.Ytick_TB = QTextEdit(str(self.datas.nYtick),window);
+        self.Ytick_TB = QTextEdit(str(self.datas.nYtick),window)
         GraphHeight_Label = QLabel("Graph Height : ", window)
         self.Graph_Height_TB = QTextEdit(str(self.datas.nGraphHeight),window)
         RunButton = QPushButton("Run", window)
         RunButton2 = QPushButton("Run2", window)
         border_frame = QFrame(window)
 
-        CompareResult_Label1 = QLabel("Compare Path1", window)
-        CompareResult_Button1 = QPushButton("Search", window)
-        self.CompareResult_Path1 = QTextBrowser()
-        CompareResult_Label2 = QLabel("Compare Path2", window)
-        CompareResult_Button2 = QPushButton("Search", window)
-        self.CompareResult_Path2 = QTextBrowser()
-        CompareResult_Button = QPushButton("Compare", window)
+        CSV_Path_Label = QLabel("CSV Path", window)
+        CSV_Search_Button = QPushButton("Search", window)
+        self.CSV_Path = QTextBrowser()
+        CSV_Review_Button = QPushButton("CSV Review", window)
 
         window_layout.addWidget(left_widget)
         window_layout.addWidget(right_widget)
@@ -93,13 +95,10 @@ class MyClass:
         RunButton2.setParent(left_widget)
         yTick_Label.setParent(left_widget)
         self.Ytick_TB.setParent(left_widget)
-        CompareResult_Label1.setParent(right_widget)
-        CompareResult_Button1.setParent(right_widget)
-        self.CompareResult_Path1.setParent(right_widget)
-        CompareResult_Label2.setParent(right_widget)
-        CompareResult_Button2.setParent(right_widget)
-        self.CompareResult_Path2.setParent(right_widget)
-        CompareResult_Button.setParent(right_widget)
+        CSV_Path_Label.setParent(right_widget)
+        CSV_Search_Button.setParent(right_widget)
+        self.CSV_Path.setParent(right_widget)
+        CSV_Review_Button.setParent(right_widget)
         
         border_frame.setGeometry(window.width() // 2, 0, 1, window.height())
         FolderPath_Label.setGeometry(10,52,100,20)
@@ -117,13 +116,10 @@ class MyClass:
         RunButton.setGeometry(80, 402, 100, 50)
         RunButton2.setGeometry(180, 402, 100, 50)
 
-        CompareResult_Label1.setGeometry(10,52,100,20)
-        CompareResult_Button1.setGeometry(110,50,50,25)
-        self.CompareResult_Path1.setGeometry(10,100,220,50)
-        CompareResult_Label2.setGeometry(10,172,100,20)
-        CompareResult_Button2.setGeometry(110,170,50,25)
-        self.CompareResult_Path2.setGeometry(10,220,220,50)
-        CompareResult_Button.setGeometry(80,402,100,50)
+        CSV_Path_Label.setGeometry(10,52,100,20)
+        CSV_Search_Button.setGeometry(110,50,50,25)
+        self.CSV_Path.setGeometry(10,100,220,50)
+        CSV_Review_Button.setGeometry(80,402,100,50)
 
 
 
@@ -135,6 +131,8 @@ class MyClass:
         self.Ytick_TB.textChanged.connect(self.on_property_changed)
         RunButton.clicked.connect(self.run_function)
         RunButton2.clicked.connect(self.run_function2)
+        CSV_Search_Button.clicked.connect(self.CSV_Search)
+        CSV_Review_Button.clicked.connect(self.CSV_Review)
         # CompareResult_Button1.clicked.connect(self.select_compare_path1)
         # CompareResult_Button2.clicked.connect(self.select_compare_path2)
         # CompareResult_Button.clicked.connect(self.run_compare)
@@ -160,8 +158,77 @@ class MyClass:
         self.datas.nGraphHeight = int(self.Graph_Height_TB.toPlainText())
         self.datas.nYtick = float(self.Ytick_TB.toPlainText())
         
+    def get_csv_file_path(self):
+        root = tk.Tk()
+        root.withdraw()  # 메인 창을 숨기고 파일 대화 상자만 표시
+        
+        file_path = filedialog.askopenfilename(
+            title="CSV 파일 선택",
+            filetypes=[("CSV 파일", "*.csv")],
+        )
+        
+        if file_path:
+            return file_path
+        else:
+            return None
+        
+    def read_csv_file(self, file_path):
+        data = []
+        try:
+            with open(file_path, newline='', encoding='utf-8') as csvfile:
+                csvreader = csv.reader(csvfile)
+                for row in csvreader:
+                    data.append(row)
+            return data
+        except FileNotFoundError:
+            print(f"파일을 찾을 수 없습니다: {file_path}")
+            return None
+        except Exception as e:
+            print(f"파일을 읽어오는 중 오류 발생: {str(e)}")
+            return None
+
+    def CSV_Search(self):
+        self.datas.sCSVPath = self.get_csv_file_path()
+        self.CSV_Path.clear()
+        self.CSV_Path.append(self.datas.sCSVPath)
+
+    def CSV_Review(self):
+        sCSVPath = self.datas.sCSVPath
+        if sCSVPath == "":
+            print("csv Path를 입력하세요")
+            return
+        else:
+            csv_data = self.read_csv_file(self.datas.sCSVPath)
+            grouped_data = defaultdict(list)
+            Title_List = [""]
+            for i in range(1, len(csv_data)):
+                sTitle = csv_data[i][1]
+                if Title_List[-1] != sTitle:
+                    Title_List.append(sTitle)
+                MemX = float(csv_data[i][7])
+                MemY = float(csv_data[i][8])
+                grouped_data[sTitle].append((MemX, MemY))
+            GT_List = grouped_data[Title_List[1]]
+            Percentage_List = []
+            for i in range(2, len(Title_List)):
+                Percentage = self.Calc_Percentage(GT_List, grouped_data[Title_List[i]], 5) / len(GT_List) * 100
+                Percentage_List.append(Percentage)
+            return
     
-    
+    def Calc_Percentage(self, GT_List, Target_List, range):
+        nCount = 0
+        for (x, y) in GT_List:
+            for (x2, y2) in Target_List:
+                if self.Check_Range(x,x2,range) and self.Check_Range(y,y2,range): 
+                    nCount += 1
+                    break
+        return nCount
+
+    def Check_Range(self, source, target, range):
+        if target >= source - range and target <= source + range:
+            return True 
+        else: return False
+
     def run_function(self):
         # 실행할 함수의 코드를 여기에 작성합니다.
         sFolderPath = self.datas.sFolderPath
