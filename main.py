@@ -14,6 +14,7 @@ from xml.dom import minidom
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QTextBrowser ,QTextEdit, QDesktopWidget, QWidget, QHBoxLayout, QFrame, QFileDialog, QMessageBox, QMainWindow
 from collections import defaultdict
+from multiprocessing import Pool
 
 class CalcData:
     sFolderPath = "D:\PixelBlur"
@@ -31,6 +32,43 @@ class xmlData:
     def __init__(self, idx, score):
         self.nBlurScore = score
         self.nIndex = idx
+
+def process_csv_data(i, csv_data):
+    sTitle = csv_data[i][1]
+    MemX = float(csv_data[i][7])
+    MemY = float(csv_data[i][8])
+    Width = float(csv_data[i][9])
+    Height = float(csv_data[i][10])
+    if Width >= Height:
+        size = Width
+    else:
+        size = Height
+    # Return the updated Title_List and grouped_data
+    return sTitle, (MemX, MemY), size
+
+def process_data(grouped_data, GT_List, title):
+    if len(grouped_data[title]) > 0:
+        matchCnt, list_idx = Calc_Percentage(GT_List, grouped_data[title], 30)
+        GTLen = len(GT_List)
+        return matchCnt / GTLen * 100, list_idx
+    return 0
+
+def Calc_Percentage(GT_List, Target_List, range):
+    nCount = 0
+    idx_list = []
+    for idx, ((x, y) , size) in enumerate(GT_List):
+        for (x2, y2), size2 in Target_List:
+            if Check_Range(x,x2,range) and Check_Range(y,y2,range) and Check_Range(size,size2, 1): 
+                nCount += 1
+                idx_list.append(idx)
+                break
+    return nCount, idx_list
+
+
+def Check_Range(source, target, range):
+    if target >= source - range and target <= source + range:
+        return True 
+    else: return False
 
 class MyClass:
     def __init__(self):
@@ -193,6 +231,7 @@ class MyClass:
         self.CSV_Path.append(self.datas.sCSVPath)
 
     def CSV_Review(self):
+        num_cores = os.cpu_count()
         sCSVPath = self.datas.sCSVPath
         if sCSVPath == "":
             print("csv Path를 입력하세요")
@@ -200,34 +239,67 @@ class MyClass:
         else:
             csv_data = self.read_csv_file(self.datas.sCSVPath)
             grouped_data = defaultdict(list)
-            Title_List = [""]
-            for i in range(1, len(csv_data)):
-                sTitle = csv_data[i][1]
-                if Title_List[-1] != sTitle:
-                    Title_List.append(sTitle)
-                MemX = float(csv_data[i][7])
-                MemY = float(csv_data[i][8])
-                grouped_data[sTitle].append((MemX, MemY))
-            GT_List = grouped_data[Title_List[1]]
-            Percentage_List = []
-            for i in range(2, len(Title_List)):
-                Percentage = self.Calc_Percentage(GT_List, grouped_data[Title_List[i]], 5) / len(GT_List) * 100
-                Percentage_List.append(Percentage)
-            return
-    
-    def Calc_Percentage(self, GT_List, Target_List, range):
-        nCount = 0
-        for (x, y) in GT_List:
-            for (x2, y2) in Target_List:
-                if self.Check_Range(x,x2,range) and self.Check_Range(y,y2,range): 
-                    nCount += 1
-                    break
-        return nCount
+            Title_List = []
 
-    def Check_Range(self, source, target, range):
-        if target >= source - range and target <= source + range:
-            return True 
-        else: return False
+            pool = Pool(num_cores)
+            # Use the Pool to process the first loop in parallel
+            #results = pool.starmap(process_csv_data, [(i, csv_data) for i in range(1, len(csv_data))])
+            results = pool.starmap(process_csv_data, [(i, csv_data) for i in range(1, 10000)])
+            # Unpack the results to get the updated Title_List and grouped_data
+            # Close the pool of processes
+            pool.close()
+            pool.join()
+            for title, pos, size in results:
+                grouped_data[title].append((pos, size))
+                if title not in Title_List:
+                    Title_List.append(title)
+        
+            #firstTitle = Title_List[len(Title_List) - 1]
+            firstTitle = Title_List[0]
+            GT_List = grouped_data[firstTitle]
+
+            error_List = []
+            for idx, ((x, y) , size) in enumerate(GT_List):
+                for idx2, ((x2, y2) , size2) in enumerate(GT_List):
+                    if(abs(x-x2) < 10 and abs(y-y2) < 10 and idx != idx2):
+                        error_List.append((idx,idx2))
+            return
+            # Percentage_List = []
+            # List_idx = []
+
+            # pool = Pool(num_cores)
+           
+            # # Use the Pool to process the second loop in parallel
+            # # Percentage_List = pool.starmap(process_data, [(grouped_data, GT_List, Title_List[i]) for i in range(0 , len(Title_List) - 1)])
+            # results = pool.starmap(process_data, [(grouped_data, GT_List, Title_List[i]) for i in range(2 , 3)])
+            # for Percentages, lists in results:          
+            #     Percentage_List = [p for p in Percentages if p > 50]
+            #     List_idx = lists
+            # # Create a new Pool object for the second loop
+            # # Close the pool of processes
+            # pool.close()
+            # pool.join()
+                        
+            # root_folder_path = r"D:\BlurScore_Review"
+            # now = datetime.datetime.now()
+            # work_folder_path = os.path.join(root_folder_path, now.strftime("%Y-%m-%d_%H-%M-%S"))
+            # os.makedirs(work_folder_path)
+            # save_path = os.path.join(work_folder_path, "result.png")
+            # # 리스트의 합계 계산
+            # total = sum(Percentage_List)
+
+            # # 리스트의 요소 개수 계산
+            # count = len(Percentage_List)
+
+            # # 평균 계산
+            # average = total / count
+
+            # # 평균 출력
+            # print("반복 횟수:", count)
+            # print("반복성 평균:", average)
+
+            # self.save_array_graph(Percentage_List, save_path, "Percentages", True)
+            return
 
     def run_function(self):
         # 실행할 함수의 코드를 여기에 작성합니다.
@@ -307,7 +379,7 @@ class MyClass:
 
         chipNum = int(len(result_Arrays[0]) / self.datas.nPatternCount)
         self.make_result_data(result_Arrays, stddevs ,work_folder_path)
-        self.save_array_graph(result_Arrays, save_path, "BlurScore", chipNum)
+        self.save_array_graph(result_Arrays, save_path, "BlurScore")
         # sigma3_values의 평균을 계산하여 출력
         sigma3_mean = sum(stddevs) / len(stddevs)
         print("Sigma3 Values의 평균:", sigma3_mean)
@@ -400,55 +472,52 @@ class MyClass:
     #     plt.savefig(output_file)
     #     plt.close()
 
-    def save_array_graph(self, data_list, output_file, title, chipNum):
+    def save_array_graph(self, data_list, output_file, title, isCSVReview = False):
         fig, ax = plt.subplots(figsize=(12.8, 9.6))
         ax.set_title(title)
         
         color_map = cm.get_cmap('tab20b', len(data_list)//2)
         color_map_c = cm.get_cmap('tab20c', len(data_list)//2)
         
-        for idx, data in enumerate(data_list):
-            temp = np.array(data).astype(float)
-            x = np.arange(len(temp))
-            y = np.array(temp)
+        if isCSVReview:
+            ax.plot(data_list)
+        else:
+            for idx, data in enumerate(data_list):
+                temp = np.array(data).astype(float)
+                x = np.arange(len(temp))
+                y = np.array(temp)
+                if idx % 2 == 0:
+                    color = color_map(idx // 2)
+                else:
+                    color = color_map_c((idx - 1) // 2)
+                ax.plot(x, y, label=f'Data {idx+1}', color=color)
+                ax.text(x[-1] + 0.5, y[-1], str(idx+1), fontsize=8, ha='center', va='bottom')
             
-            if idx % 2 == 0:
-                color = color_map(idx // 2)
-            else:
-                color = color_map_c((idx - 1) // 2)
-            
-            ax.plot(x, y, label=f'Data {idx+1}', color=color)
-            ax.text(x[-1] + 0.5, y[-1], str(idx+1), fontsize=8, ha='center', va='bottom')
-
-        ax.set_xlabel("SubLine")
-        ax.set_ylabel("BlurScore")
         ax.set_ylim(0, self.datas.nGraphHeight)
-        ax.set_xlim(0,len(data_list[0]))
-        pattern = []
-        for i in range(1, self.datas.nPatternCount + 1):
-            pattern.extend([str(i)] * self.datas.nIndexCount)
-        ax.set_xticks(np.arange(0, len(data), 1), pattern)
-        ax.set_yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))
-        ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
-
-        x_positions = np.arange(-1, len(data_list[0]), self.datas.nPatternCount - 2)
-        
-        # Add a secondary x-axis (ax2)
-        # ax2 = ax.twiny()  # Use twiny() instead of twinx() to create a new x-axis
-        
-        # def ax2_to_x(x):
-        #     return x / self.datas.nPatternCount  # Convert back to original scale
-        
-        # ax2.set_xlim(ax.get_xlim())
-        # ax2.set_xticks(x_positions)
-        # ax2.set_xticklabels([f'{int(ax2_to_x(x)):g}' for x in x_positions])
-        # ax2.set_xlabel("구분선")
-        
-        for x_position in x_positions:
-            # ax2.axvline(x=x_position, color='gray', linestyle='--', alpha=0.5)
-            # Draw dotted lines at the end of each repeating number
-            if (x_position + 1) % (self.datas.nPatternCount - 2) == 0:
-                ax.axvline(x=x_position, color='gray', linestyle=':', alpha=0.5)
+        if isCSVReview :
+            ax.set_xlabel("Repeat")
+            ax.set_ylabel("Percentage")
+            xlim = len(data_list)
+            xtick = 1
+            ax.set_xticks(np.arange(0, xlim, 1))
+            ax.set_yticks(np.arange(0, 101, 5))
+            ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
+        else:
+            ax.set_xlabel("SubLine")
+            ax.set_ylabel("BlurScore")
+            xlim = len(data_list[0])
+            xtick = len(data)
+            ax.set_xlim(0,xlim)
+            pattern = []
+            for i in range(1, self.datas.nPatternCount + 1):
+                pattern.extend([str(i)] * self.datas.nIndexCount)
+            ax.set_xticks(np.arange(0, data, 1), pattern)
+            ax.set_yticks(np.arange(0, self.datas.nGraphHeight, self.datas.nYtick))
+            ax.legend(bbox_to_anchor=(1.01, 1.15), loc='upper left')
+            x_positions = np.arange(-1, xlim, self.datas.nPatternCount - 2)
+            for x_position in x_positions:
+                if (x_position + 1) % (self.datas.nPatternCount - 2) == 0:
+                    ax.axvline(x=x_position, color='gray', linestyle=':', alpha=0.5)
 
         plt.savefig(output_file)
         plt.close()
